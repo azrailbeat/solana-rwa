@@ -494,22 +494,6 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
         emit YieldClaimed(msg.sender, yieldAmount, block.timestamp);
     }
 
-    /**
-     * @dev Batch operations for gas efficiency
-     */
-    function batchClaimYield(address[] calldata users) external onlyOwner {
-        for (uint256 i = 0; i < users.length; i++) {
-            address user = users[i];
-            uint256 yieldAmount = calculateYield(user);
-            
-            if (yieldAmount > 0) {
-                UserDeposit storage userDeposit = userDeposits[user];
-                userDeposit.lastYieldClaim = block.timestamp;
-                userDeposit.totalYieldClaimed = userDeposit.totalYieldClaimed + yieldAmount;
-                
-                vaultConfig.asset.safeTransfer(user, yieldAmount);
-                emit YieldClaimed(user, yieldAmount, block.timestamp);
-            }
-        }
-    }
+    // NOTE: batchClaimYield function removed for security and privacy reasons
+    // Users must claim their own yield via claimYield() or compoundYield()
 }

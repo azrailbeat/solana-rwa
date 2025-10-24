@@ -107,6 +107,15 @@ pub mod omniflow_rwa {
     ) -> Result<()> {
         let asset = &mut ctx.accounts.asset;
         require!(asset.is_active, ErrorCode::AssetInactive);
+        require!(amount > 0, ErrorCode::InvalidAmount);
+
+        // Prevent minting more than 10% of total supply in single transaction
+        let max_mint_per_tx = asset.total_supply / 10;
+        require!(
+            amount <= max_mint_per_tx,
+            ErrorCode::ExceedsSingleMintLimit
+        );
+
         require!(
             asset.circulating_supply.checked_add(amount).unwrap() <= asset.total_supply,
             ErrorCode::ExceedsMaxSupply
@@ -615,4 +624,8 @@ pub enum ErrorCode {
     InvalidCrossChainOperation,
     #[msg("Unauthorized access")]
     Unauthorized,
+    #[msg("Amount must be greater than zero")]
+    InvalidAmount,
+    #[msg("Amount exceeds single mint limit (max 10% of total supply)")]
+    ExceedsSingleMintLimit,
 }
