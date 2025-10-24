@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * @title RWAYieldVault
@@ -18,7 +17,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
  */
 contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
 
     // Vault configuration
     struct VaultConfig {
@@ -160,17 +158,17 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
 
         // Update user data
         UserDeposit storage user = userDeposits[msg.sender];
-        user.shares = user.shares.add(shares);
+        user.shares = user.shares + shares;
         user.depositTime = block.timestamp;
-        user.totalDeposited = user.totalDeposited.add(assets);
+        user.totalDeposited = user.totalDeposited + assets;
         
         if (user.lastYieldClaim == 0) {
             user.lastYieldClaim = block.timestamp;
         }
 
         // Update vault data
-        yieldData.totalAssets = yieldData.totalAssets.add(assets);
-        yieldData.totalShares = yieldData.totalShares.add(shares);
+        yieldData.totalAssets = yieldData.totalAssets + assets;
+        yieldData.totalShares = yieldData.totalShares + shares;
 
         // Transfer tokens and mint shares
         vaultConfig.asset.safeTransferFrom(msg.sender, address(this), assets);
@@ -197,16 +195,16 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
         require(assets > 0, "Zero assets");
 
         // Calculate withdrawal fee
-        uint256 withdrawalFee = assets.mul(vaultConfig.withdrawalFee).div(BASIS_POINTS);
-        uint256 assetsAfterFee = assets.sub(withdrawalFee);
+        uint256 withdrawalFee = assets * vaultConfig.withdrawalFee / BASIS_POINTS;
+        uint256 assetsAfterFee = assets - withdrawalFee;
 
         // Update user data
         UserDeposit storage user = userDeposits[msg.sender];
-        user.shares = user.shares.sub(shares);
+        user.shares = user.shares - shares;
 
         // Update vault data
-        yieldData.totalAssets = yieldData.totalAssets.sub(assets);
-        yieldData.totalShares = yieldData.totalShares.sub(shares);
+        yieldData.totalAssets = yieldData.totalAssets - assets;
+        yieldData.totalShares = yieldData.totalShares - shares;
 
         // Burn shares and transfer tokens
         _burn(msg.sender, shares);
@@ -234,9 +232,15 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
         yieldAmount = calculateYield(msg.sender);
         require(yieldAmount > 0, "No yield to claim");
 
+        // Check vault solvency before claiming
+        require(
+            vaultConfig.asset.balanceOf(address(this)) >= yieldAmount,
+            "Insufficient vault balance"
+        );
+
         // Update user's last claim time
         user.lastYieldClaim = block.timestamp;
-        user.totalYieldClaimed = user.totalYieldClaimed.add(yieldAmount);
+        user.totalYieldClaimed = user.totalYieldClaimed + yieldAmount;
 
         // Transfer yield (minted from accumulated yield)
         vaultConfig.asset.safeTransfer(msg.sender, yieldAmount);
@@ -255,12 +259,12 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
         if (userDeposit.shares == 0) return 0;
 
         // Calculate time-based yield
-        uint256 timeElapsed = block.timestamp.sub(userDeposit.lastYieldClaim);
+        uint256 timeElapsed = block.timestamp - userDeposit.lastYieldClaim;
         uint256 userAssets = _convertToAssets(userDeposit.shares);
-        
+
         // Simple interest calculation: Principal * Rate * Time / Year
-        uint256 annualYield = userAssets.mul(vaultConfig.baseAPY).div(BASIS_POINTS);
-        yieldAmount = annualYield.mul(timeElapsed).div(SECONDS_PER_YEAR);
+        uint256 annualYield = userAssets * vaultConfig.baseAPY / BASIS_POINTS;
+        yieldAmount = annualYield * timeElapsed / SECONDS_PER_YEAR;
 
         return yieldAmount;
     }
@@ -277,7 +281,7 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
      */
     function pricePerShare() public view returns (uint256) {
         if (yieldData.totalShares == 0) return PRECISION;
-        return yieldData.totalAssets.mul(PRECISION).div(yieldData.totalShares);
+        return yieldData.totalAssets * PRECISION / yieldData.totalShares;
     }
 
     /**
@@ -334,7 +338,7 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
         if (yieldData.totalShares == 0) {
             return assets;
         }
-        return assets.mul(yieldData.totalShares).div(yieldData.totalAssets);
+        return assets * yieldData.totalShares / yieldData.totalAssets;
     }
 
     /**
@@ -344,7 +348,7 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
         if (yieldData.totalShares == 0) {
             return shares;
         }
-        return shares.mul(yieldData.totalAssets).div(yieldData.totalShares);
+        return shares * yieldData.totalAssets / yieldData.totalShares;
     }
 
     /**
@@ -360,23 +364,23 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
             return;
         }
 
-        uint256 timeElapsed = block.timestamp.sub(yieldData.lastUpdateTime);
-        
+        uint256 timeElapsed = block.timestamp - yieldData.lastUpdateTime;
+
         // Calculate yield based on base APY
-        uint256 annualYield = yieldData.totalAssets.mul(vaultConfig.baseAPY).div(BASIS_POINTS);
-        uint256 periodYield = annualYield.mul(timeElapsed).div(SECONDS_PER_YEAR);
+        uint256 annualYield = yieldData.totalAssets * vaultConfig.baseAPY / BASIS_POINTS;
+        uint256 periodYield = annualYield * timeElapsed / SECONDS_PER_YEAR;
 
         if (periodYield > 0) {
             // Calculate fees
-            uint256 performanceFee = periodYield.mul(vaultConfig.performanceFee).div(BASIS_POINTS);
-            uint256 managementFee = yieldData.totalAssets.mul(vaultConfig.managementFee).mul(timeElapsed).div(BASIS_POINTS).div(SECONDS_PER_YEAR);
-            
-            uint256 totalFees = performanceFee.add(managementFee);
-            uint256 netYield = periodYield.sub(Math.min(periodYield, totalFees));
+            uint256 performanceFee = periodYield * vaultConfig.performanceFee / BASIS_POINTS;
+            uint256 managementFee = yieldData.totalAssets * vaultConfig.managementFee * timeElapsed / BASIS_POINTS / SECONDS_PER_YEAR;
+
+            uint256 totalFees = performanceFee + managementFee;
+            uint256 netYield = periodYield - Math.min(periodYield, totalFees);
 
             // Update yield data
-            yieldData.accumulatedYield = yieldData.accumulatedYield.add(netYield);
-            yieldData.totalAssets = yieldData.totalAssets.add(netYield);
+            yieldData.accumulatedYield = yieldData.accumulatedYield + netYield;
+            yieldData.totalAssets = yieldData.totalAssets + netYield;
             yieldData.pricePerShare = pricePerShare();
 
             // Collect fees
@@ -400,6 +404,7 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
     }
 
     function emergencyWithdraw(address token, uint256 amount) external onlyOwner {
+        require(token != address(vaultConfig.asset), "Cannot withdraw vault asset");
         IERC20(token).safeTransfer(owner(), amount);
     }
 
@@ -473,15 +478,15 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
         require(yieldAmount > 0, "No yield to compound");
 
         UserDeposit storage user = userDeposits[msg.sender];
-        
+
         // Convert yield to shares and add to user's position
         uint256 newShares = _convertToShares(yieldAmount);
-        user.shares = user.shares.add(newShares);
+        user.shares = user.shares + newShares;
         user.lastYieldClaim = block.timestamp;
-        user.totalYieldClaimed = user.totalYieldClaimed.add(yieldAmount);
+        user.totalYieldClaimed = user.totalYieldClaimed + yieldAmount;
 
         // Update vault totals
-        yieldData.totalShares = yieldData.totalShares.add(newShares);
+        yieldData.totalShares = yieldData.totalShares + newShares;
 
         // Mint new shares for compounded yield
         _mint(msg.sender, newShares);
@@ -500,7 +505,7 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
             if (yieldAmount > 0) {
                 UserDeposit storage userDeposit = userDeposits[user];
                 userDeposit.lastYieldClaim = block.timestamp;
-                userDeposit.totalYieldClaimed = userDeposit.totalYieldClaimed.add(yieldAmount);
+                userDeposit.totalYieldClaimed = userDeposit.totalYieldClaimed + yieldAmount;
                 
                 vaultConfig.asset.safeTransfer(user, yieldAmount);
                 emit YieldClaimed(user, yieldAmount, block.timestamp);
