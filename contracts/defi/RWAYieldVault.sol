@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "../security/CircuitBreaker.sol";
 
 /**
  * @title RWAYieldVault
@@ -58,6 +59,7 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
     
     address public treasury;
     address public yieldStrategy;
+    CircuitBreaker public circuitBreaker;
     uint256 public constant BASIS_POINTS = 10000;
     uint256 public constant SECONDS_PER_YEAR = 365 days;
     uint256 public constant PRECISION = 1e18;
@@ -144,9 +146,15 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
     function deposit(uint256 assets) external nonReentrant whenNotPaused returns (uint256 shares) {
         require(assets >= vaultConfig.minDeposit, "Below minimum deposit");
         require(!vaultConfig.emergencyShutdown, "Vault shutdown");
-        
+
         if (vaultConfig.maxDeposit > 0) {
             require(assets <= vaultConfig.maxDeposit, "Exceeds maximum deposit");
+        }
+
+        // Circuit breaker check
+        if (address(circuitBreaker) != address(0)) {
+            (bool allowed, string memory reason) = circuitBreaker.checkTransaction(msg.sender, assets);
+            require(allowed, reason);
         }
 
         // Update yield before deposit
@@ -190,6 +198,15 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
         // Update yield before withdrawal
         _updateYield();
 
+        // Calculate assets first for circuit breaker check
+        uint256 assetsBeforeFee = _convertToAssets(shares);
+
+        // Circuit breaker check
+        if (address(circuitBreaker) != address(0)) {
+            (bool allowed, string memory reason) = circuitBreaker.checkTransaction(msg.sender, assetsBeforeFee);
+            require(allowed, reason);
+        }
+
         // Calculate assets to return
         assets = _convertToAssets(shares);
         require(assets > 0, "Zero assets");
@@ -225,12 +242,18 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
      */
     function claimYield() external nonReentrant whenNotPaused returns (uint256 yieldAmount) {
         _updateYield();
-        
+
         UserDeposit storage user = userDeposits[msg.sender];
         require(user.shares > 0, "No deposits");
 
         yieldAmount = calculateYield(msg.sender);
         require(yieldAmount > 0, "No yield to claim");
+
+        // Circuit breaker check
+        if (address(circuitBreaker) != address(0)) {
+            (bool allowed, string memory reason) = circuitBreaker.checkTransaction(msg.sender, yieldAmount);
+            require(allowed, reason);
+        }
 
         // Check vault solvency before claiming
         require(
@@ -439,6 +462,10 @@ contract RWAYieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
 
     function setYieldStrategy(address _yieldStrategy) external onlyOwner {
         yieldStrategy = _yieldStrategy;
+    }
+
+    function setCircuitBreaker(address _circuitBreaker) external onlyOwner {
+        circuitBreaker = CircuitBreaker(_circuitBreaker);
     }
 
     function setDepositLimits(uint256 _minDeposit, uint256 _maxDeposit) external onlyOwner {
