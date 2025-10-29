@@ -452,7 +452,7 @@ export const typeDefs = gql`
     estimateBridge(input: BridgeEstimateInput!): BridgeEstimation!
     cancelBridgeTransfer(transferId: ID!): Transaction!
 
-    # Demo mutations for hackathons
+    # Demo mutations for demos
     loadDemoData: String!
     simulateOneChainDemo: String!
   }

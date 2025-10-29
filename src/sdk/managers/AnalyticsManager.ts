@@ -406,7 +406,7 @@ export class AnalyticsManager extends EventEmitter {
     return history;
   }
 
-  // Demo methods for hackathon presentation
+  // Demo methods for demo presentation
   async loadDemoAnalytics(): Promise<void> {
     console.log('Loading demo analytics data...');
     

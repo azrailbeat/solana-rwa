@@ -51,7 +51,7 @@ export class SolanaFlowSDK {
     return {
       chainId,
       isConnected: true,
-      simulateHackathonDemo: async () => ({
+      simulateDemoDemo: async () => ({
         message: `OneChain demo simulation for ${chainId}`,
         timestamp: new Date().toISOString(),
         features: ['RWA Tokenization', 'Cross-chain Bridge', 'DeFi Integration'],

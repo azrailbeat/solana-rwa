@@ -412,7 +412,7 @@ export class MarketplaceManager extends EventEmitter {
   }
 
   /**
-   * Load demo listings for hackathon presentations
+   * Load demo listings for demo presentations
    */
   async loadDemoListings(): Promise<MarketplaceListing[]> {
     const demoListings: Partial<MarketplaceListing>[] = [

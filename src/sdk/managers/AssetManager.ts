@@ -345,7 +345,7 @@ export class AssetManager extends EventEmitter {
   }
 
   /**
-   * Load demo assets for hackathon presentations
+   * Load demo assets for demo presentations
    */
   async loadDemoAssets(): Promise<Asset[]> {
     const demoAssets: CreateAssetRequest[] = [

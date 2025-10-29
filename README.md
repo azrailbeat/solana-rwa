@@ -1,6 +1,5 @@
 # SolanaFlow - Universal Cross-Chain RWA + Identity Router
 
-https://youtu.be/KyQ9bx9kDl4
 ## 🚀 **REVOLUTIONARY INNOVATIONS**
 
 ### 🎯 **World's First Gamified RWA Platform**
@@ -91,7 +90,7 @@ flowchart TD
 
 ## 🌟 Overview
 
-**SolanaFlow** is a production-ready universal cross-chain platform for Real World Assets (RWA) tokenization with integrated decentralized identity, AI-powered due diligence, gamification, and comprehensive compliance. Built for the MetaMask hackathon, qualifying for both Cross-Chain Interoperability and RWA Tokenization tracks. Features institutional-grade security, regulatory compliance, and an engaging gamified experience that transforms RWA investing into an addictive simulation game.
+**SolanaFlow** is a universal cross-chain platform for Real World Assets (RWA) tokenization with integrated decentralized identity, AI-powered due diligence, gamification, and comprehensive compliance. Features institutional-grade security, regulatory compliance, and an engaging gamified experience that transforms RWA investing into an addictive simulation game.
 
 ### ✨ Core Features
 

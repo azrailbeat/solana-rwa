@@ -446,8 +446,8 @@ export const resolvers = {
     simulateOneChainDemo: async (_: any, __: any, { sdk }: { sdk: OmniFlowSDK }) => {
       try {
         const oneChainProvider = sdk.getProvider('onechain');
-        if ('simulateHackathonDemo' in oneChainProvider) {
-          const results = await (oneChainProvider as any).simulateHackathonDemo();
+        if ('simulateDemoDemo' in oneChainProvider) {
+          const results = await (oneChainProvider as any).simulateDemoDemo();
           return `OneChain demo completed: ${results.assetsCreated} assets created, ${results.transactionsExecuted} transactions executed, $${results.totalValue} total value`;
         }
         return 'OneChain demo simulation completed';

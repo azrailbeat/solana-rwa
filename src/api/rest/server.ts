@@ -281,7 +281,7 @@ export class SolanaFlowAPIServer {
     this.app.use('/api/defi', defiRoutes);
     this.app.use('/api/bridge', bridgeRoutes);
 
-    // Demo endpoints for hackathon presentations
+    // Demo endpoints for demo presentations
     this.app.get('/api/demo/load-data', async (req, res) => {
       try {
         const [assets, listings, transfers] = await Promise.all([
@@ -311,12 +311,12 @@ export class SolanaFlowAPIServer {
     this.app.get('/api/demo/onechain', async (req, res) => {
       try {
         const oneChainProvider = this.sdk.getProvider('onechain');
-        if ('simulateHackathonDemo' in oneChainProvider) {
-          const demoResults = await (oneChainProvider as any).simulateHackathonDemo();
+        if ('simulateDemoDemo' in oneChainProvider) {
+          const demoResults = await (oneChainProvider as any).simulateDemoDemo();
           
           res.json({
             success: true,
-            message: 'OneChain hackathon demo simulation completed',
+            message: 'OneChain demo demo simulation completed',
             data: demoResults,
           });
         } else {

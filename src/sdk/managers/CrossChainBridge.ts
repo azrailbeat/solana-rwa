@@ -447,7 +447,7 @@ export class CrossChainBridge extends EventEmitter {
   }
 
   /**
-   * Load demo bridge transfers for hackathon presentations
+   * Load demo bridge transfers for demo presentations
    */
   async loadDemoBridgeTransfers(): Promise<BridgeTransfer[]> {
     const demoTransfers: Partial<BridgeTransfer>[] = [

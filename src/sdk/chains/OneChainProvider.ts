@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 
 /**
  * OneChain Provider - Primary chain for OmniFlow RWA marketplace
- * Optimized for hackathon demonstrations with enhanced features
+ * Optimized for demo demonstrations with enhanced features
  */
 export class OneChainProvider implements ChainProvider {
   public readonly chainId = 'onechain' as const;
@@ -293,10 +293,10 @@ export class OneChainProvider implements ChainProvider {
   }
 
   /**
-   * Demo-specific helper methods for hackathons
+   * Demo-specific helper methods for demos
    */
   async getDemoAssets(): Promise<any[]> {
-    // Return mock demo assets for hackathon presentation
+    // Return mock demo assets for demo presentation
     return [
       {
         id: 'demo-1',
@@ -325,7 +325,7 @@ export class OneChainProvider implements ChainProvider {
     ];
   }
 
-  async simulateHackathonDemo(): Promise<{
+  async simulateDemoDemo(): Promise<{
     assetsCreated: number;
     transactionsExecuted: number;
     totalValue: string;

@@ -281,7 +281,7 @@ export class OmniFlowSDK extends EventEmitter {
   }
 
   /**
-   * Static method for OneChain-only setup (hackathon demo)
+   * Static method for OneChain-only setup (demo demo)
    */
   static async createOneChainDemo(apiKey: string): Promise<OmniFlowSDK> {
     const config: SDKConfig = {
